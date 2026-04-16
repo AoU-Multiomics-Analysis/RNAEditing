@@ -1,0 +1,37 @@
+# Don't track large reference genome files
+*.fasta
+*.fa
+*.fai
+*.dict
+
+# Don't track data files
+*.bam
+*.bai
+*.sam
+*.cram
+
+# Don't track temporary/output files
+*.tmp
+*.temp
+*.pileup
+*.log
+*.out
+
+# Don't track Python cache
+__pycache__/
+*.pyc
+
+# Don't track OS files
+.DS_Store
+
+# Don't track output files
+output/
+test_output/
+*.rnaediting_op
+
+# Don't track test reference files
+test_rna_editing_sites.bed
+
+*.sif
+apptainer/
+apptainer/*.sif
