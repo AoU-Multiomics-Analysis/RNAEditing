@@ -8,8 +8,8 @@ use Getopt::Long;
 require "parse_pileup_query.pl"; #NEED PARSE PILEUP LIBRARY
 
 # Default values
-my $minbasequal = 0;  # MINIMUM BASE QUALITY SCORE
-my $minmapqual = 0;  # MINIMUM READ MAPPING QUALITY SCORE
+my $minbasequal = 20;  # MINIMUM BASE QUALITY SCORE
+my $minmapqual = 250;  # MINIMUM READ MAPPING QUALITY SCORE
 my $offset = 33;       # BASE QUALITY SCORE OFFSET - 33 FOR SANGER SCALE, 64 FOR ILLUMINA SCALE
 my $bamfile;
 my $outputfile;
