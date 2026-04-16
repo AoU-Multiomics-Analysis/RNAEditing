@@ -21,7 +21,7 @@ COPY ../quantification/1_pileup/scripts/parse_pileup_query.pl /opt/scripts/
 COPY ../quantification/2_combine_matrices/scripts/combine_sample_matrices.pl /opt/scripts/
 COPY ../quantification/3_transform/scripts/transform.py /opt/scripts/
 
-COPY ../quantification/1_pileup/references/augmented_editing_sites_REDIportal_plus_original.bed /opt/scripts/
+COPY ../quantification/1_pileup/references/augmented_editing_sites_REDIportal_plus_original.bed.gz /opt/scripts/
 
 ENV PATH="/opt/scripts:${PATH}"
 
