@@ -110,7 +110,7 @@ def main(input_file, output_file):
             coefficient_of_variation = 0
         else: 
             coefficient_of_variation = site_std / site_mean
-        if coefficient_of_variation < 1:
+        if coefficient_of_variation < 0.8:
             filtered_variance += 1
             continue
         
