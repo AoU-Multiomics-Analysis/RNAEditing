@@ -25,7 +25,7 @@ task quantify_editing_single_sample {
             --bam input.bam \
             --output ~{sample_id}.rnaediting_op \
             --genome reference.fasta \
-            --sites /opt/scripts/All.AG.stranded.annovar.Hg38_multianno.AnnoAlu.AnnoRep.NR.bed.gz
+            --sites /opt/scripts/augmented_editing_sites_REDIportal_plus_original.bed.gz
     >>>
     
     runtime {
