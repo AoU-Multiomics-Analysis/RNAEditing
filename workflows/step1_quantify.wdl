@@ -29,7 +29,7 @@ task quantify_editing_single_sample {
     >>>
     
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/rnaediting:main"
+        docker: "ghcr.io/aou-multiomics-analysis/rnaediting/quantification:main"
         memory: "~{memory}GB"
         disks: "local-disk ~{disk_space} HDD"
         cpu: "~{num_threads}"
