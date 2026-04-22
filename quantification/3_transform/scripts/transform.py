@@ -65,7 +65,7 @@ def main(input_file, output_file):
             sys.stderr.write(f"  Processed {total_sites} sites...\n")
         
         fields = line.strip().split()
-        chrom_full = fields[0]  # e.g., chr1:10185:10186
+        chrom_full = fields[0]  # e.g., chr1:10185:10186:ENSG12234.1
         
         # Parse chromosome
         chr_parts = chrom_full.replace("chr", "").split(":")
@@ -106,10 +106,16 @@ def main(input_file, output_file):
         # Filter 2: Remove low variance sites
         site_std = np.std(editing_levels)
         site_mean = np.mean(editing_levels)
-        if site_mean == 0: 
-            coefficient_of_variation = 0
-        else: 
-            coefficient_of_variation = site_std / site_mean
+        
+        # Filter sites with very low mean (essentially no editing)
+        if site_mean == 0:
+            filtered_variance += 1
+            continue
+        
+        # Calculate coefficient of variation
+        coefficient_of_variation = site_std / site_mean
+        
+        # Filter sites with low coefficient of variation
         if coefficient_of_variation < 0.8:
             filtered_variance += 1
             continue
@@ -127,7 +133,7 @@ def main(input_file, output_file):
     sys.stderr.write("Filtering Summary:\n")
     sys.stderr.write(f"  Total sites input: {total_sites}\n")
     sys.stderr.write(f"  Filtered (sex chromosomes): {filtered_sex_chr}\n")
-    sys.stderr.write(f"  Filtered (variance <0.005): {filtered_variance}\n")
+    sys.stderr.write(f"  Filtered (low variance/CV): {filtered_variance}\n")
     sys.stderr.write(f"  Sites with imputed values: {sites_with_imputation}\n")
     sys.stderr.write(f"  Sites retained: {len(sites_data)}\n")
     sys.stderr.write(f"  Retention rate: {100*len(sites_data)/total_sites:.1f}%\n\n")
@@ -160,9 +166,16 @@ def main(input_file, output_file):
             start = parts[1]
             end = parts[2]
             
+            # Extract gene_id if present (format: chr:start:end:gene_id)
+            if len(parts) == 4:
+                gene_id = parts[3]
+                site_id = f"{chromosome}:{start}:{end}_{gene_id}"
+            else:
+                site_id = f"{chromosome}:{start}:{end}"
+            
             # Format: chr, start, end, ID, sample1_value, sample2_value, ...
             data_strings = [f"{val:.6f}" for val in data]
-            out.write("\t".join([chromosome, start, end, coord] + data_strings) + '\n')
+            out.write("\t".join([chromosome, start, end, site_id] + data_strings) + '\n')
     
     sys.stderr.write("\nDone!\n")
     sys.stderr.write(f"Output saved to: {output_file}\n")
@@ -187,10 +200,10 @@ if __name__ == "__main__":
         sys.stderr.write("Description:\n")
         sys.stderr.write("  Processes RNA editing matrix for QTL analysis:\n")
         sys.stderr.write("    1. Filters sex chromosomes (X, Y)\n")
-        sys.stderr.write("    2. Filters low variance sites (std < 0.005)\n")
+        sys.stderr.write("    2. Filters low CV sites (CV < 0.8)\n")
         sys.stderr.write("    3. Imputes missing values (0/0) with mean editing level\n")
         sys.stderr.write("    4. Applies inverse normal transformation per-site\n")
-        sys.stderr.write("    5. Outputs sorted BED format file\n\n")
+        sys.stderr.write("    5. Outputs sorted BED format file with gene IDs\n\n")
         sys.stderr.write("Example:\n")
         sys.stderr.write("  python transform.py -i editing_matrix.txt -o normalized_output.bed\n")
         parser.print_help()

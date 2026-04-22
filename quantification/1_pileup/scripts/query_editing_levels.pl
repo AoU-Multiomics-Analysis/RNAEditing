@@ -90,6 +90,7 @@ system($mpileup_cmd);
 
 print STDERR "Parsing pileup output...\n";
 my %sitehash;
+my %genehash;  # NEW: Store gene IDs
 open (my $PILEUP, "<", $piletemp) or die "Cannot open pileup file: $!\n";
 my $pileup_lines = 0;
 while(<$PILEUP>) {
@@ -119,7 +120,7 @@ if ($inputfile =~ /\.gz$/) {
 }
 
 open (my $OUTPUT, ">", $outputfile) or die "error opening outputfile: $!\n";
-print $OUTPUT "#chrom\tposition\tcoverage\teditedreads\teditlevel\n";
+print $OUTPUT "#chrom\tposition\tgene_id\tcoverage\teditedreads\teditlevel\n";  # CHANGED: Added gene_id column
 
 my $sites_processed = 0;
 my $sites_with_coverage = 0;
@@ -131,6 +132,7 @@ while (<$INPUT>) { #READ IN LIST OF KNOWN EDITED SITES AND QUERY EDITING STATUS
 	my ($chr, $position) = ($fields[0], $fields[2]); # 3rd column is 1-based coordinates
 	my $location = join '_', $chr, $position;
 	my ($strand) = ($fields[5]);
+	my $gene_id = $fields[6];  # NEW: Get gene ID from column 7 (0-indexed as 6)
 
 	$sites_processed++;
 
@@ -146,13 +148,13 @@ while (<$INPUT>) { #READ IN LIST OF KNOWN EDITED SITES AND QUERY EDITING STATUS
 		if ($newcov) {		
 			my $varfreq = 0;
 			$varfreq = sprintf("%.3f", $newmismatch/$newcov);
-			print $OUTPUT "$fields[0]\t$fields[1]\t$newcov\t$newmismatch\t$varfreq\n";
+			print $OUTPUT "$fields[0]\t$fields[1]\t$gene_id\t$newcov\t$newmismatch\t$varfreq\n";  # CHANGED: Added $gene_id
 			$sites_with_coverage++;
 		} else {
-			print $OUTPUT "$fields[0]\t$fields[1]\t0\t0\tN/A\n";
+			print $OUTPUT "$fields[0]\t$fields[1]\t$gene_id\t0\t0\tN/A\n";  # CHANGED: Added $gene_id
 		}
 	} else {
-		print $OUTPUT "$fields[0]\t$fields[1]\t0\t0\tN/A\n";
+		print $OUTPUT "$fields[0]\t$fields[1]\t$gene_id\t0\t0\tN/A\n";  # CHANGED: Added $gene_id
 	}
 }
 close $INPUT;	

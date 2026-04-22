@@ -69,8 +69,8 @@ foreach my $file (glob "$input_dir/*.rnaediting_op") {
     while(<$INPUT>) {
         chomp;
         my @fields = split;
-        my ($chr, $pos, $cov, $edit, $lvl) = ($fields[0],$fields[1],$fields[2], $fields[3],$fields[4]);
-        my $site = join ':', $chr, ($pos-1), $pos;
+        my ($chr, $pos, $gene_id, $cov, $edit, $lvl) = ($fields[0],$fields[1],$fields[2],$fields[3],$fields[4],$fields[5]);
+        my $site = join ':', $chr, ($pos-1), $pos, $gene_id;
         my $ratio = join '/', $edit, $cov;
         next if ($chr eq '#chrom');
         if ($cov >= $mincov) {
