@@ -23,7 +23,7 @@ task quantify_editing_single_sample {
         env PERLLIB=/opt/scripts \
         perl /opt/scripts/query_editing_levels.pl \
             --bam input.bam \
-            --output ~{sample_id}.rnaediting_op \
+            --output ~{sample_id}.rnaediting_op.gz \
             --genome reference.fasta \
             --sites /opt/scripts/augmented_editing_sites_REDIportal_plus_original_annotated.bed.gz
     >>>
@@ -36,7 +36,7 @@ task quantify_editing_single_sample {
     }
     
     output {
-        File editing_counts = "~{sample_id}.rnaediting_op"
+        File editing_counts = "~{sample_id}.rnaediting_op.gz"
     }
 }
 
