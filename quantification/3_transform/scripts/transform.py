@@ -158,11 +158,18 @@ def main(input_file, output_file):
     sites_for_sorting = []
     for coord, data in zip(sites_coords, sites_data):
         parts = coord.replace("chr", "").split(":")
-        chr_num = int(parts[0])
+        chrom = parts[0]
         start_pos = int(parts[1])
-        sites_for_sorting.append((chr_num, start_pos, coord, data))
-    
-    # Sort by chromosome, then position
+
+    # chr_key: (0, chrom_number) for 1-23; (1, chrom_string) for everything else
+        try:
+            c = int(chrom)
+            chr_key = (0, c) if 1 <= c <= 23 else (1, chrom)
+        except ValueError:
+            chr_key = (1, chrom)
+
+        sites_for_sorting.append((chr_key, start_pos, coord, data))
+
     sites_for_sorting.sort(key=lambda x: (x[0], x[1]))
     
     # Write output in BED format
@@ -173,7 +180,7 @@ def main(input_file, output_file):
         out.write("\t".join(["#Chr", "start", "end", "ID"] + sample_names) + '\n')
         
         # Write data
-        for chr_num, start_pos, coord, data in sites_for_sorting:
+        for chr_key, start_pos, coord, data in sites_for_sorting:
             parts = coord.replace("chr", "").split(":")
             chromosome = parts[0]
             start = parts[1]
