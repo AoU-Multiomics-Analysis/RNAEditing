@@ -1,4 +1,5 @@
 use strict;
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use IO::Compress::Gzip qw($GzipError);
 use File::Path qw(make_path);
 use File::Basename qw(dirname basename);
@@ -61,15 +62,25 @@ my $OUT = IO::Compress::Gzip->new($output_file)
 
 # Process each input file
 my $file_count = 0;
-foreach my $file (glob "$input_dir/*.rnaediting_op.gz") {
+my @files = (glob("$input_dir/*.rnaediting_op.gz"), glob("$input_dir/*.rnaediting_op"));
+die "No input files found in $input_dir\n" unless @files;
+
+foreach my $file (@files) {
     $file_count++;
     print STDERR "Processing file $file_count: $file\n";
 
     # sample = filename only (no path, no extension)
-    my $sample = basename($file, ".rnaediting_op.gz");
+    my $sample = basename($file);
+    $sample =~ s/\.rnaediting_op(\.gz)?$//;
     print STDERR "  Sample name: $sample\n";
 
-    open(my $INPUT, "-|", "zcat", $file) or die "Cannot zcat $file: $!\n";
+    my $INPUT;
+    if ($file =~ /\.gz$/) {
+        $INPUT = IO::Uncompress::Gunzip->new($file) or die "Cannot gunzip $file: $GunzipError\n";
+    } else {
+        open($INPUT, "<", $file) or die "Cannot open $file: $!\n";
+    }
+
     while(<$INPUT>) {
         chomp;
         my @fields = split;
