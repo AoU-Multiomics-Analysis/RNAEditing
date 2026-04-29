@@ -5,6 +5,7 @@
 use warnings;
 use strict;
 use Getopt::Long;
+use IO::Compress::Gzip qw($GzipError);
 require "parse_pileup_query.pl"; #NEED PARSE PILEUP LIBRARY
 
 # Default values
@@ -119,7 +120,13 @@ if ($inputfile =~ /\.gz$/) {
     open($INPUT, "<", $inputfile) or die "error opening inputfile: $!\n";
 }
 
-open (my $OUTPUT, ">", $outputfile) or die "error opening outputfile: $!\n";
+my $OUTPUT;
+if ($outputfile !~ /\.gz$/) {
+    $outputfile .= ".gz";   
+}
+
+$OUTPUT = IO::Compress::Gzip->new($outputfile)
+  or die "Cannot write gzip output $outputfile: $GzipError\n";
 print $OUTPUT "#chrom\tposition\tgene_id\tcoverage\teditedreads\teditlevel\n";  # CHANGED: Added gene_id column
 
 my $sites_processed = 0;

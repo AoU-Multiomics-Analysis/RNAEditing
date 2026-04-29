@@ -1,5 +1,5 @@
 use strict;
-use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use IO::Compress::Gzip qw($GzipError);
 use File::Path qw(make_path);
 use File::Basename qw(dirname basename);
 use Getopt::Long;
@@ -53,19 +53,23 @@ print STDERR "  Output file: $output_file\n";
 print STDERR "  Minimum coverage: $mincov\n";
 print STDERR "  Minimum samples: $minsamps\n\n";
 
-open(my $OUT, ">", $output_file) or die "Cannot open output file: $!\n";
+if ($output_file !~ /\.gz$/) {
+    $output_file .= ".gz";  # force gz output
+}
+my $OUT = IO::Compress::Gzip->new($output_file)
+  or die "Cannot write gzip output $output_file: $GzipError\n";
 
 # Process each input file
 my $file_count = 0;
-foreach my $file (glob "$input_dir/*.rnaediting_op") {
+foreach my $file (glob "$input_dir/*.rnaediting_op.gz") {
     $file_count++;
     print STDERR "Processing file $file_count: $file\n";
 
     # sample = filename only (no path, no extension)
-    my $sample = basename($file, ".rnaediting_op");
+    my $sample = basename($file, ".rnaediting_op.gz");
     print STDERR "  Sample name: $sample\n";
 
-    open (my $INPUT, "<", $file);
+    open(my $INPUT, "-|", "zcat", $file) or die "Cannot zcat $file: $!\n";
     while(<$INPUT>) {
         chomp;
         my @fields = split;

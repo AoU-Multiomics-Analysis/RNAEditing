@@ -6,12 +6,18 @@ ENV PERLLIB=/opt/scripts
 
 RUN micromamba install -y -n base -c conda-forge -c bioconda \
     perl \
+    perl-io-compress \
     python=3.11.1 \
     bioconda::samtools=1.23 \
     bioconda::htslib=1.23 \
     conda-forge::numpy \
     conda-forge::scipy \
     conda-forge::pandas \
+    conda-forge::r-base \
+    conda-forge::r-optparse \
+    conda-forge::r-tidyverse \
+    conda-forge::r-data.table \
+    bioconda::bioconductor-pcatools \
     && micromamba clean --all --yes
 
 WORKDIR /opt/scripts

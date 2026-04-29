@@ -69,7 +69,7 @@ workflow normalize_workflow {
     call normalize_transform {
         input:
             input_matrix = matrix_file,
-            output_file = "~{output_prefix}.bed",
+            output_file = "~{output_prefix}.bed.gz",
             memory = memory,
             disk_space = disk_space,
             num_threads = num_threads

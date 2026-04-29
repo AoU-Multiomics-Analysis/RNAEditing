@@ -2,8 +2,19 @@
 
 import sys
 import numpy as np
+import gzip
 from scipy.stats import rankdata, norm
 from optparse import OptionParser
+
+def open_maybe_gzip(path, mode="rt"):
+    # mode: "rt" text read, "wt" text write
+    if path.endswith(".gz"):
+        return gzip.open(path, mode)
+    return open(path, mode)
+
+def ensure_gz(path):
+    return path if path.endswith(".gz") else path + ".gz"
+
 
 def inverse_normal_transform(x):
     """
@@ -31,13 +42,15 @@ def main(input_file, output_file):
     sys.stderr.write(f"Input file: {input_file}\n")
     sys.stderr.write(f"Output file: {output_file}\n\n")
     
-    # Read the input file
+    output_file = ensure_gz(output_file)
+    
     try:
-        with open(input_file, 'r') as f:
+        with open_maybe_gzip(input_file, "rt") as f:
             lines = f.readlines()
-    except:
-        sys.stderr.write(f"Error: Cannot open input file {input_file}\n")
+    except Exception as e:
+        sys.stderr.write(f"Error: Cannot open input file {input_file}: {e}\n")
         return
+
     
     # Parse header
     header = lines[0].strip().split()
@@ -155,7 +168,7 @@ def main(input_file, output_file):
     # Write output in BED format
     sys.stderr.write(f"Writing output to {output_file}...\n")
     
-    with open(output_file, 'w') as out:
+    with open_maybe_gzip(output_file, "wt") as out:
         # Write header
         out.write("\t".join(["#Chr", "start", "end", "ID"] + sample_names) + '\n')
         

@@ -35,7 +35,7 @@ task aggregate_samples {
 
     perl /opt/scripts/combine_sample_matrices.pl \
         --input localized \
-        --output ~{output_file} \
+        --output ~{output_file}.gz \
         --mincov ~{min_coverage} \
         --minsamps ~{min_samples}    
     >>>
@@ -48,7 +48,7 @@ task aggregate_samples {
     }
     
     output {
-        File aggregated_matrix = "~{output_file}"
+        File aggregated_matrix = "~{output_file}.gz"
     }
 }
 

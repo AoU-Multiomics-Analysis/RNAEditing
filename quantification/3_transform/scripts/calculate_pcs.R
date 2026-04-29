@@ -36,7 +36,11 @@ compute_pcs <- function(expression_df){
 }
 
 ####### ANALYSIS BEGIN ########
-bed_df <- readr::read_tsv(bed_file)
+if (grepl("\\.gz$", bed_file)) {
+  bed_df <- readr::read_tsv(gzfile(bed_file))
+} else {
+  bed_df <- readr::read_tsv(bed_file)
+}
 message('Bed file loaded')
 
 message('Computing PCs')
