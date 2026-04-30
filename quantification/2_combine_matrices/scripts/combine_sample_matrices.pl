@@ -71,7 +71,7 @@ foreach my $file (@files) {
 
     # sample = filename only (no path, no extension)
     my $sample = basename($file);
-    $sample =~ s/\.rnaediting_op(\.gz)?$//;
+    $sample = (split(/\./, $sample, 2))[0];
     print STDERR "  Sample name: $sample\n";
 
     my $INPUT;
