@@ -29,7 +29,7 @@ COPY ../quantification/3_transform/scripts/transform.py /opt/scripts/
 COPY ../quantification/3_transform/scripts/calculate_pcs.R /opt/scripts/
 
 
-COPY ../quantification/1_pileup/references/augmented_editing_sites_REDIportal_plus_original_annotated.bed.gz /opt/scripts/
+COPY ../quantification/1_pileup/references/augmented_editing_sites_REDIportal_plus_original_annotated_autosomes.bed.gz /opt/scripts/
 
 ENV PATH="/opt/scripts:${PATH}"
 

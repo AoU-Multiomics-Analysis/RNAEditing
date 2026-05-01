@@ -65,9 +65,7 @@ def main(input_file, output_file):
     sites_coords = []
 
     total_sites = 0
-    filtered_sex_chr = 0
     filtered_low_mad = 0
-    sites_with_imputation = 0
 
     sys.stderr.write("Processing sites...\n")
 
@@ -82,11 +80,6 @@ def main(input_file, output_file):
 
         chr_parts = chrom_full.replace("chr", "").split(":")
         chromosome = chr_parts[0]
-
-        # Filter sex chromosomes
-        if chromosome in ['X', 'Y']:
-            filtered_sex_chr += 1
-            continue
 
         ratios = fields[1:]
         editing_levels = []
@@ -103,9 +96,7 @@ def main(input_file, output_file):
 
         editing_levels = np.array(editing_levels)
 
-        # -----------------------------
-        # NEW: compute MAD BEFORE imputation
-        # -----------------------------
+        # Apply MAD filter
         mad = compute_mad(editing_levels)
 
         if mad is None or not np.isfinite(mad):
@@ -116,23 +107,18 @@ def main(input_file, output_file):
             filtered_low_mad += 1
             continue
 
-        # -----------------------------
-        # NOW impute
-        # -----------------------------
-        if np.any(np.isnan(editing_levels)):
-            mean_val = np.nanmean(editing_levels)
-
-            if np.isnan(mean_val):
-                continue
-
-            editing_levels[np.isnan(editing_levels)] = mean_val
-            sites_with_imputation += 1
-
-        # -----------------------------
-        # Inverse normal transform
-        # -----------------------------
-        normalized_levels = inverse_normal_transform(editing_levels)
-
+        mask = ~np.isnan(editing_levels)
+        obs = editing_levels[mask]
+        
+        # if nothing observed, skip (should already be handled by MAD, but safe)
+        if obs.size == 0:
+            continue
+        
+        norm_obs = inverse_normal_transform(obs)
+        
+        normalized_levels = np.full(editing_levels.shape, np.nan, dtype=float)
+        normalized_levels[mask] = norm_obs
+        
         sites_coords.append(chrom_full)
         sites_data.append(normalized_levels)
 
@@ -140,9 +126,7 @@ def main(input_file, output_file):
 
     sys.stderr.write("Filtering Summary:\n")
     sys.stderr.write(f"  Total sites input: {total_sites}\n")
-    sys.stderr.write(f"  Filtered (sex chromosomes): {filtered_sex_chr}\n")
     sys.stderr.write(f"  Filtered (low MAD < {MAD_THRESHOLD}): {filtered_low_mad}\n")
-    sys.stderr.write(f"  Sites with imputed values: {sites_with_imputation}\n")
     sys.stderr.write(f"  Sites retained: {len(sites_data)}\n")
     sys.stderr.write(f"  Retention rate: {100*len(sites_data)/total_sites:.1f}%\n\n")
 

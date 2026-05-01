@@ -26,7 +26,7 @@ task quantify_editing_single_sample {
       --bam input.bam \
       --output ~{sample_id}.rnaediting_op.gz \
       --genome reference.fasta \
-      --sites /opt/scripts/augmented_editing_sites_REDIportal_plus_original_annotated.bed.gz
+      --sites /opt/scripts/augmented_editing_sites_REDIportal_plus_original_annotated_autosomes.bed.gz
   >>>
 
   runtime {
@@ -53,7 +53,6 @@ task split_editing_by_chr {
 
   command <<<
     set -euo pipefail
-
     mkdir -p per_chr
 
     python - <<'PY'
@@ -77,31 +76,22 @@ def out_handle(name):
 with gzip.open(inp, "rt") as f:
     header = f.readline()
 
-    # pre-create outputs: chr1..chr22 + other
+    # pre-create outputs: chr1..chr22
     for i in range(1, 23):
         out_handle(f"chr{i}")
-    out_handle("other")
 
     for line in f:
         if not line.strip():
             continue
         chrname = line.split("\t", 1)[0]
 
-        # exclude chrX and chrY
-        if chrname in ("chrX", "chrY"):
-            continue
-
-        # chr1..chr22 go to their own files
+        # since sites list is autosomes only, keep only chr1..chr22
         if chrname.startswith("chr"):
             rest = chrname[3:]
             if rest.isdigit():
                 n = int(rest)
                 if 1 <= n <= 22:
                     out_handle(f"chr{n}").write(line)
-                    continue
-
-        # everything else -> other
-        out_handle("other").write(line)
 
 for h in outs.values():
     h.close()
@@ -117,7 +107,6 @@ PY
 
   output {
     Array[File] editing_counts_chr = glob("per_chr/~{sample_id}.chr*.rnaediting_op.gz")
-    File editing_counts_other = "per_chr/~{sample_id}.other.rnaediting_op.gz"
   }
 }
 
@@ -159,6 +148,5 @@ workflow quantify_editing_single_sample_workflow {
   output {
     File editing_counts_all = quantify_editing_single_sample.editing_counts_all
     Array[File] editing_counts_chr = split_editing_by_chr.editing_counts_chr
-    File editing_counts_other = split_editing_by_chr.editing_counts_other
   }
 }
