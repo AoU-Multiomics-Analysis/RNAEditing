@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import numpy as np
+import csv
 import gzip
+import numpy as np
 from scipy.stats import rankdata, norm
 from optparse import OptionParser
 
@@ -26,13 +27,10 @@ def inverse_normal_transform(x):
 
 
 def compute_mad(values):
-    """
-    Median absolute deviation, ignoring NaNs
-    """
+    """Median absolute deviation, ignoring NaNs."""
     valid = values[~np.isnan(values)]
-    if len(valid) == 0:
-        return None
-
+    if valid.size == 0:
+        return np.nan
     med = np.median(valid)
     mad = np.median(np.abs(valid - med))
     return mad
@@ -61,8 +59,13 @@ def main(input_file, output_file):
 
     sys.stderr.write(f"Found {num_samples} samples\n")
 
+    # retained sites for transformed BED output
     sites_data = []
     sites_coords = []
+
+    # metadata for ALL sites (including filtered)
+    # rows: site, mean_editing, mad, n_missing, kept(boolean)
+    site_metadata = []
 
     total_sites = 0
     filtered_low_mad = 0
@@ -71,19 +74,17 @@ def main(input_file, output_file):
 
     for line in lines[1:]:
         total_sites += 1
-
         if total_sites % 1000 == 0:
             sys.stderr.write(f"  Processed {total_sites} sites...\n")
 
         fields = line.strip().split()
+        if not fields:
+            continue
+
         chrom_full = fields[0]
-
-        chr_parts = chrom_full.replace("chr", "").split(":")
-        chromosome = chr_parts[0]
-
         ratios = fields[1:]
-        editing_levels = []
 
+        editing_levels = []
         for ratio_str in ratios:
             num, denom = ratio_str.split('/')
             num, denom = float(num), float(denom)
@@ -91,34 +92,36 @@ def main(input_file, output_file):
             if denom < 1:
                 editing_levels.append(np.nan)
             else:
-                val = (num + 0.5) / (denom + 0.5)
-                editing_levels.append(val)
+                editing_levels.append((num + 0.5) / (denom + 0.5))
 
-        editing_levels = np.array(editing_levels)
+        editing_levels = np.array(editing_levels, dtype=float)
 
-        # Apply MAD filter
+        n_missing = int(np.sum(np.isnan(editing_levels)))
+        mean_edit = float(np.nanmean(editing_levels)) if n_missing < len(editing_levels) else np.nan
         mad = compute_mad(editing_levels)
 
-        if mad is None or not np.isfinite(mad):
+        # decide whether we keep this site for output matrix
+        keep = True
+        if (not np.isfinite(mad)) or (mad < MAD_THRESHOLD):
+            keep = False
             filtered_low_mad += 1
-            continue
 
-        if mad < MAD_THRESHOLD:
-            filtered_low_mad += 1
+        # record metadata for ALL sites (even filtered)
+        site_metadata.append((chrom_full, mean_edit, mad, n_missing, keep))
+
+        if not keep:
             continue
 
         mask = ~np.isnan(editing_levels)
         obs = editing_levels[mask]
-        
-        # if nothing observed, skip (should already be handled by MAD, but safe)
         if obs.size == 0:
+            # should be rare given MAD filter, but safe
             continue
-        
+
         norm_obs = inverse_normal_transform(obs)
-        
         normalized_levels = np.full(editing_levels.shape, np.nan, dtype=float)
         normalized_levels[mask] = norm_obs
-        
+
         sites_coords.append(chrom_full)
         sites_data.append(normalized_levels)
 
@@ -130,9 +133,6 @@ def main(input_file, output_file):
     sys.stderr.write(f"  Sites retained: {len(sites_data)}\n")
     sys.stderr.write(f"  Retention rate: {100*len(sites_data)/total_sites:.1f}%\n\n")
 
-    # -----------------------------
-    # Sorting
-    # -----------------------------
     sys.stderr.write("Sorting sites by genomic position...\n")
 
     sites_for_sorting = []
@@ -151,13 +151,10 @@ def main(input_file, output_file):
 
     sites_for_sorting.sort(key=lambda x: (x[0], x[1]))
 
-    # -----------------------------
-    # Output
-    # -----------------------------
     sys.stderr.write(f"Writing output to {output_file}...\n")
 
     with open_maybe_gzip(output_file, "wt") as out:
-        out.write("\t".join(["#Chr", "start", "end", "ID"] + sample_names) + '\n')
+        out.write("\t".join(["#Chr", "start", "end", "ID"] + sample_names) + "\n")
 
         for chr_key, start_pos, coord, data in sites_for_sorting:
             parts = coord.replace("chr", "").split(":")
@@ -171,11 +168,23 @@ def main(input_file, output_file):
             else:
                 site_id = f"{chromosome}:{start}:{end}"
 
-            data_strings = [f"{val:.6f}" for val in data]
-            out.write("\t".join([chromosome, start, end, site_id] + data_strings) + '\n')
+            # keep missing as NA
+            data_strings = ["NA" if np.isnan(val) else f"{val:.6f}" for val in data]
+            out.write("\t".join([chromosome, start, end, site_id] + data_strings) + "\n")
+
+    sys.stderr.write("Writing site metadata to site_metadata.csv...\n")
+    with open("site_metadata.csv", "w", newline="") as csvfile:
+        w = csv.writer(csvfile)
+        w.writerow(["site", "mean_editing", "mad", "n_missing", "kept"])
+        for site, mean_edit, mad_val, n_missing, kept in site_metadata:
+            # write missing mean/mad as NA for readability
+            mean_out = "NA" if (mean_edit is None or not np.isfinite(mean_edit)) else mean_edit
+            mad_out = "NA" if (mad_val is None or not np.isfinite(mad_val)) else mad_val
+            w.writerow([site, mean_out, mad_out, n_missing, int(kept)])
 
     sys.stderr.write("\nDone!\n")
     sys.stderr.write(f"Output saved to: {output_file}\n")
+    sys.stderr.write("Metadata saved to: site_metadata.csv\n")
 
 
 if __name__ == "__main__":

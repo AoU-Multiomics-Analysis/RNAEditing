@@ -1,5 +1,8 @@
 version 1.0
 
+##############################################
+# TASK: quantify editing
+##############################################
 task quantify_editing_single_sample {
   input {
     File bam_file
@@ -41,6 +44,9 @@ task quantify_editing_single_sample {
   }
 }
 
+##############################################
+# TASK: split by chromosome
+##############################################
 task split_editing_by_chr {
   input {
     File editing_counts_all
@@ -85,7 +91,6 @@ with gzip.open(inp, "rt") as f:
             continue
         chrname = line.split("\t", 1)[0]
 
-        # since sites list is autosomes only, keep only chr1..chr22
         if chrname.startswith("chr"):
             rest = chrname[3:]
             if rest.isdigit():
@@ -106,10 +111,36 @@ PY
   }
 
   output {
-    Array[File] editing_counts_chr = glob("per_chr/~{sample_id}.chr*.rnaediting_op.gz")
+    Array[File] chr_files = [
+      "per_chr/~{sample_id}.chr1.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr2.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr3.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr4.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr5.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr6.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr7.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr8.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr9.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr10.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr11.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr12.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr13.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr14.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr15.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr16.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr17.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr18.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr19.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr20.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr21.rnaediting_op.gz",
+      "per_chr/~{sample_id}.chr22.rnaediting_op.gz"
+    ]
   }
 }
 
+##############################################
+# WORKFLOW
+##############################################
 workflow quantify_editing_single_sample_workflow {
   input {
     File bam_file
@@ -147,6 +178,6 @@ workflow quantify_editing_single_sample_workflow {
 
   output {
     File editing_counts_all = quantify_editing_single_sample.editing_counts_all
-    Array[File] editing_counts_chr = split_editing_by_chr.editing_counts_chr
+    Array[File] chr_files = split_editing_by_chr.chr_files
   }
 }
