@@ -36,13 +36,14 @@ def compute_mad(values):
     return mad
 
 
-def main(input_file, output_file):
+def main(input_file, output_file, window_size):
 
     MAD_THRESHOLD = 0.003
 
     sys.stderr.write("Starting processing...\n")
     sys.stderr.write(f"Input file: {input_file}\n")
-    sys.stderr.write(f"Output file: {output_file}\n\n")
+    sys.stderr.write(f"Output file: {output_file}\n")
+    sys.stderr.write(f"Window size: ±{window_size:,} bp\n\n")
 
     output_file = ensure_gz(output_file)
 
@@ -159,18 +160,24 @@ def main(input_file, output_file):
         for chr_key, start_pos, coord, data in sites_for_sorting:
             parts = coord.replace("chr", "").split(":")
             chromosome = parts[0]
-            start = parts[1]
-            end = parts[2]
+            original_start = int(parts[1])
+            original_end = int(parts[2])
 
+            # Calculate windowed coordinates
+            # Use the start position (editing site) as the center
+            windowed_start = max(0, original_start - window_size)
+            windowed_end = original_start + window_size
+
+            # Build ID from original coordinates
             if len(parts) == 4:
                 gene_id = parts[3]
-                site_id = f"{chromosome}:{start}:{end}_{gene_id}"
+                site_id = f"{chromosome}:{original_start}:{original_end}_{gene_id}"
             else:
-                site_id = f"{chromosome}:{start}:{end}"
+                site_id = f"{chromosome}:{original_start}:{original_end}"
 
             # keep missing as NA
             data_strings = ["NA" if np.isnan(val) else f"{val:.6f}" for val in data]
-            out.write("\t".join([chromosome, start, end, site_id] + data_strings) + "\n")
+            out.write("\t".join([chromosome, str(windowed_start), str(windowed_end), site_id] + data_strings) + "\n")
 
     sys.stderr.write("Writing site metadata to site_metadata.csv...\n")
     with open("site_metadata.csv", "w", newline="") as csvfile:
@@ -188,14 +195,19 @@ def main(input_file, output_file):
 
 
 if __name__ == "__main__":
-    parser = OptionParser(usage="usage: %prog -i INPUT_FILE -o OUTPUT_FILE")
-    parser.add_option("-i", "--input", dest="input_file")
-    parser.add_option("-o", "--output", dest="output_file")
+    parser = OptionParser(usage="usage: %prog -i INPUT_FILE -o OUTPUT_FILE -w WINDOW_SIZE")
+    parser.add_option("-i", "--input", dest="input_file",
+                      help="Input file with editing ratios")
+    parser.add_option("-o", "--output", dest="output_file",
+                      help="Output BED file (will be gzipped if .gz extension)")
+    parser.add_option("-w", "--window", dest="window_size", type="int", default=100000,
+                      help="Window size in bp to extend in each direction from editing site (default: 100000)")
 
     (options, args) = parser.parse_args()
 
     if not options.input_file or not options.output_file:
-        sys.stderr.write("Error: must provide input and output\n")
+        sys.stderr.write("Error: must provide input and output files\n")
+        parser.print_help()
         sys.exit(1)
 
-    main(options.input_file, options.output_file)
+    main(options.input_file, options.output_file, options.window_size)
