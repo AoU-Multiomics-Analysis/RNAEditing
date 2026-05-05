@@ -6,7 +6,7 @@ task aggregate_samples {
         String output_file
         
         Int min_coverage = 20
-        Int min_samples = 450
+        Int min_samples = 900
         
         Int memory
         Int disk_space

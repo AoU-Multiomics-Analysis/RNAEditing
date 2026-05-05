@@ -10,7 +10,7 @@ my %totalhash;
 my %lvlhash;
 
 # Default values for min samples and min coverage
-my $minsamps = 450;
+my $minsamps = 900;
 my $mincov = 20;
 my $input_dir;
 my $output_file;

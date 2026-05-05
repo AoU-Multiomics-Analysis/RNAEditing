@@ -118,10 +118,11 @@ def main(input_file, output_file, window_size):
         if obs.size == 0:
             # should be rare given MAD filter, but safe
             continue
+        
+        site_mean = np.mean(obs)
+        editing_levels[~mask] = site_mean  # impute missing with mean
 
-        norm_obs = inverse_normal_transform(obs)
-        normalized_levels = np.full(editing_levels.shape, np.nan, dtype=float)
-        normalized_levels[mask] = norm_obs
+        normalized_levels = inverse_normal_transform(editing_levels)
 
         sites_coords.append(chrom_full)
         sites_data.append(normalized_levels)
@@ -175,7 +176,7 @@ def main(input_file, output_file, window_size):
             else:
                 site_id = f"{chromosome}:{original_start}:{original_end}"
 
-            # keep missing as NA
+            # all values should be non-missing after imputation (safety check kept)
             data_strings = ["NA" if np.isnan(val) else f"{val:.6f}" for val in data]
             out.write("\t".join([chromosome, str(windowed_start), str(windowed_end), site_id] + data_strings) + "\n")
 
