@@ -2,6 +2,9 @@ library(tidyverse)
 library(data.table)
 library(PCAtools)
 
+print("Reached")
+
+
 ########## PARSE COMMAND LINE ARGUMENTS ##########
 option_list <- list(
     optparse::make_option(c("--bed_file"), type="character", default=NULL,
@@ -10,6 +13,11 @@ option_list <- list(
                         help="Output prefix for PC file")
 )
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
+
+# Add error checking
+if(is.null(opt$bed_file) || is.null(opt$output_prefix)){
+    stop("Error: Both --bed_file and --output_prefix are required")
+}
 
 bed_file <- opt$bed_file
 prefix <- opt$output_prefix
@@ -21,7 +29,7 @@ message(paste0('Writing to: ', phenotype_pcs_out))
 compute_pcs <- function(expression_df){
     subsetted_expression_dat <- expression_df %>% select(-c(1,2,3,4))
     pca_standardized <- PCAtools::pca(subsetted_expression_dat)
-    n_pcs <- chooseGavishDonoho(subsetted_expression_dat, 
+    n_pcs <- PCAtools::chooseGavishDonoho(subsetted_expression_dat, 
                                 var.explained = pca_standardized$sdev^2, 
                                 noise = 1)
     message(paste0('Using ', n_pcs,' PCs'))
@@ -37,11 +45,12 @@ compute_pcs <- function(expression_df){
 
 ####### ANALYSIS BEGIN ########
 if (grepl("\\.gz$", bed_file)) {
-  bed_df <- readr::read_tsv(gzfile(bed_file))
+  # Add comment = "" to tell R that '#' is NOT a comment character
+  bed_df <- readr::read_tsv(gzfile(bed_file), comment = "")
 } else {
-  bed_df <- readr::read_tsv(bed_file)
+  # Also add it here for consistency
+  bed_df <- readr::read_tsv(bed_file, comment = "")
 }
-message('Bed file loaded')
 
 message('Computing PCs')
 PCA_data <- compute_pcs(bed_df)
