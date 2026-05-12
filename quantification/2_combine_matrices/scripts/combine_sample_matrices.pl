@@ -105,9 +105,12 @@ foreach my $file (@files) {
 print STDERR "\nTotal samples processed: $file_count\n";
 print STDERR "Writing output matrix...\n";
 
+# FIXED: Create sorted sample array for consistent column order
+my @sorted_samples = sort keys %sitehash;
+
 # Write header
 print $OUT "chrom";
-foreach my $sample (keys %sitehash) {
+foreach my $sample (@sorted_samples) {
     print $OUT " $sample";
 }
 print $OUT "\n";
@@ -120,7 +123,7 @@ foreach my $site (keys %totalhash) {
         my @lvls = split(/\,/, $lvlhash{$site});
         @lvls = sort {$b <=> $a} @lvls;
         print $OUT "$site";
-        foreach my $sample (keys %sitehash) {
+        foreach my $sample (@sorted_samples) {
             if ($sitehash{$sample}{$site}) {
                 print $OUT " $sitehash{$sample}{$site}";
             } else {
