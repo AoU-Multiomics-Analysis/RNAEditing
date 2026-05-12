@@ -14,11 +14,6 @@ option_list <- list(
 )
 opt <- optparse::parse_args(optparse::OptionParser(option_list=option_list))
 
-# Add error checking
-if(is.null(opt$bed_file) || is.null(opt$output_prefix)){
-    stop("Error: Both --bed_file and --output_prefix are required")
-}
-
 bed_file <- opt$bed_file
 prefix <- opt$output_prefix
 phenotype_pcs_out <- paste0(prefix,'_phenotype_PCs.tsv')
