@@ -81,13 +81,27 @@ if ($inputfile =~ /\.gz$/) {
 } else {
     $awk_cmd = "awk '\$1!=\"chromosome\"{print \$1\"\t\"\$2\"\t\"\$3}' $inputfile > $bedtemp";
 }
-system($awk_cmd);
+my $awk_status = system($awk_cmd);
+die "ERROR: Failed to create BED file (exit code: " . ($awk_status >> 8) . ")\n" if $awk_status != 0;
+die "ERROR: BED file is empty or missing\n" unless (-e $bedtemp && -s $bedtemp);
 
 print STDERR "Running samtools mpileup...\n";
 my $piletemp = join '', $outputfile, '.pileup';
 my $mpileup_cmd = "$sampath mpileup -A -B -d 1000000 -q $minmapqual -Q $minbasequal -f $genomepath -l $bedtemp $bamfile > $piletemp";
 print STDERR "Command: $mpileup_cmd\n";
-system($mpileup_cmd);
+
+my $mpileup_status = system($mpileup_cmd);
+if ($mpileup_status != 0) {
+    system("rm -f $bedtemp $piletemp");
+    die "ERROR: samtools mpileup FAILED (exit code: " . ($mpileup_status >> 8) . ")\n" .
+        "This usually means:\n" .
+        "  - OUT OF DISK SPACE (most common)\n" .
+        "  - Corrupted BAM file\n" .
+        "  - Missing BAM index\n";
+}
+
+die "ERROR: Pileup file is empty or missing\n" unless (-e $piletemp && -s $piletemp);
+print STDERR "Pileup file created: " . (-s $piletemp) . " bytes\n";
 
 print STDERR "Parsing pileup output...\n";
 my %sitehash;
