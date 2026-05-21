@@ -86,8 +86,8 @@ die "ERROR: Failed to create BED file (exit code: " . ($awk_status >> 8) . ")\n"
 die "ERROR: BED file is empty or missing\n" unless (-e $bedtemp && -s $bedtemp);
 
 print STDERR "Running samtools mpileup...\n";
-my $piletemp = join '', $outputfile, '.pileup';
-my $mpileup_cmd = "$sampath mpileup -A -B -d 1000000 -q $minmapqual -Q $minbasequal -f $genomepath -l $bedtemp $bamfile > $piletemp";
+my $piletemp = join '', $outputfile, '.pileup.gz';
+my $mpileup_cmd = "bash -c 'set -o pipefail; $sampath mpileup -A -B -d 1000000 -q $minmapqual -Q $minbasequal -f $genomepath -l $bedtemp $bamfile | gzip -c > $piletemp'";
 print STDERR "Command: $mpileup_cmd\n";
 
 my $mpileup_status = system($mpileup_cmd);
@@ -97,16 +97,17 @@ if ($mpileup_status != 0) {
         "This usually means:\n" .
         "  - OUT OF DISK SPACE (most common)\n" .
         "  - Corrupted BAM file\n" .
-        "  - Missing BAM index\n";
+        "  - Missing BAM index\n" .
+        "  - Gzip compression failed\n";
 }
 
 die "ERROR: Pileup file is empty or missing\n" unless (-e $piletemp && -s $piletemp);
-print STDERR "Pileup file created: " . (-s $piletemp) . " bytes\n";
+print STDERR "Pileup file created: " . (-s $piletemp) . " bytes (compressed)\n";
 
 print STDERR "Parsing pileup output...\n";
 my %sitehash;
 my %genehash;  # NEW: Store gene IDs
-open (my $PILEUP, "<", $piletemp) or die "Cannot open pileup file: $!\n";
+open (my $PILEUP, "gunzip -c $piletemp |") or die "Cannot open pileup file: $!\n";
 my $pileup_lines = 0;
 while(<$PILEUP>) {
 	chomp;
@@ -121,9 +122,8 @@ close $PILEUP;
 print STDERR "  Processed $pileup_lines pileup lines\n";
 
 print STDERR "Cleaning up temporary files...\n";
-system("rm $bedtemp");
-system("rm $piletemp");
-
+system("rm -f $bedtemp");
+system("rm -f $piletemp");
 print STDERR "Writing output...\n";
 
 # Open input file (handle gzipped or regular)
