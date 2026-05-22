@@ -86,11 +86,24 @@ die "ERROR: Failed to create BED file (exit code: " . ($awk_status >> 8) . ")\n"
 die "ERROR: BED file is empty or missing\n" unless (-e $bedtemp && -s $bedtemp);
 
 print STDERR "Running samtools mpileup...\n";
-my $piletemp = join '', $outputfile, '.pileup.gz';
-my $mpileup_cmd = "bash -c 'set -o pipefail; $sampath mpileup -A -B -d 1000000 -q $minmapqual -Q $minbasequal -f $genomepath -l $bedtemp $bamfile | gzip -c > $piletemp'";
-print STDERR "Command: $mpileup_cmd\n";
-
+my $piletemp = join '', $outputfile, '.pileup';
+my $stderr_log = join '', $outputfile, '.mpileup_stderr.log';
+my $mpileup_cmd = "bash -c 'set -o pipefail; $sampath mpileup -A -B -d 1000000 -q $minmapqual -Q $minbasequal -f $genomepath -l $bedtemp $bamfile > $piletemp' 2> $stderr_log";print STDERR "Command: $mpileup_cmd\n";
 my $mpileup_status = system($mpileup_cmd);
+
+# Check for disk-full or stdout errors in the captured STDERR log
+if (open(my $ERRLOG, '<', $stderr_log)) {
+    my @err_lines = <$ERRLOG>;
+    close $ERRLOG;
+    foreach my $line (@err_lines) {
+        if ($line =~ /No space left on device/i || $line =~ /closing standard output failed/i) {
+            system("rm -f $bedtemp $piletemp $stderr_log");
+            die "ERROR: Disk space or std output error detected in mpileup/gzip STDERR: $line";
+        }
+    }
+}
+unlink $stderr_log;  # Clean up
+
 if ($mpileup_status != 0) {
     system("rm -f $bedtemp $piletemp");
     die "ERROR: samtools mpileup FAILED (exit code: " . ($mpileup_status >> 8) . ")\n" .
@@ -107,7 +120,7 @@ print STDERR "Pileup file created: " . (-s $piletemp) . " bytes (compressed)\n";
 print STDERR "Parsing pileup output...\n";
 my %sitehash;
 my %genehash;  # NEW: Store gene IDs
-open (my $PILEUP, "gunzip -c $piletemp |") or die "Cannot open pileup file: $!\n";
+open (my $PILEUP, "<", $piletemp) or die "Cannot open pileup file: $!\n";
 my $pileup_lines = 0;
 while(<$PILEUP>) {
 	chomp;
