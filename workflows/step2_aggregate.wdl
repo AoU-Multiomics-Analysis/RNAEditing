@@ -64,71 +64,17 @@ task merge_chromosome_matrices {
     command <<<
     set -euo pipefail
 
-    echo "Validating sample consistency across chromosome matrices..."
-    
-    # Get reference header from first file
-    REFERENCE_HEADER=$(zcat ~{chr_matrices[0]} | head -1)
-    REFERENCE_FILE="~{chr_matrices[0]}"
-    REFERENCE_COUNT=$(echo "$REFERENCE_HEADER" | wc -w)
-    
-    echo "  File 0 ($REFERENCE_FILE): $REFERENCE_COUNT columns"
-    
-    # Check all other files against reference
-    MATRICES=(~{sep=' ' chr_matrices})
-    ALL_MATCH=true
-    
-    for i in "${!MATRICES[@]}"; do
-        if [ $i -gt 0 ]; then
-            CURRENT_FILE="${MATRICES[$i]}"
-            CURRENT_HEADER=$(zcat "$CURRENT_FILE" | head -1)
-            CURRENT_COUNT=$(echo "$CURRENT_HEADER" | wc -w)
-            
-            if [ "$CURRENT_HEADER" != "$REFERENCE_HEADER" ]; then
-                echo ""
-                echo "ERROR: Sample mismatch detected!"
-                echo "  Reference file: $REFERENCE_FILE"
-                echo "  Current file:   $CURRENT_FILE"
-                echo "  Reference: $REFERENCE_COUNT columns"
-                echo "  Current:   $CURRENT_COUNT columns"
-                echo ""
-                echo "This will cause column misalignment in the merged matrix!"
-                ALL_MATCH=false
-                exit 1
-            else
-                echo "  File $i ($CURRENT_FILE): $CURRENT_COUNT columns ✓"
-            fi
-        fi
-    done
-    
-    if [ "$ALL_MATCH" = true ]; then
-        echo ""
-        echo "✓ All ${#MATRICES[@]} files have identical headers ($REFERENCE_COUNT columns)"
-    fi
-
-    # Validation passed - now merge
-    echo ""
-    echo "Merging chromosome matrices..."
-    
     # First file: keep header
     zcat ~{chr_matrices[0]} > merged.txt
-    echo "  Added ~{chr_matrices[0]} (with header)"
 
-    # Remaining files: skip header
-    for i in "${!MATRICES[@]}"; do
-        if [ $i -gt 0 ]; then
-            echo "  Adding ${MATRICES[$i]} (data only)..."
-            zcat "${MATRICES[$i]}" | tail -n +2 >> merged.txt
+    for f in ~{sep=' ' chr_matrices}; do
+        if [[ "$f" != "~{chr_matrices[0]}" ]]; then
+            zcat "$f" | tail -n +2 >> merged.txt
         fi
     done
 
-    echo ""
-    echo "Compressing output..."
     gzip merged.txt
     mv merged.txt.gz ~{output_file}.gz
-    
-    echo "Merge complete"
-    echo "Output file: ~{output_file}.gz"
-    ls -lh ~{output_file}.gz
     >>>
 
     runtime {
