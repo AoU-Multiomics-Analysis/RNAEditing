@@ -8,6 +8,7 @@ use Getopt::Long;
 my %sitehash;
 my %totalhash;
 my %lvlhash;
+my %allsamples;  # to collect all sample names
 
 # Default values for min samples and min coverage
 my $minsamps = 900;
@@ -73,6 +74,7 @@ foreach my $file (@files) {
     my $sample = basename($file);
     $sample = (split(/\./, $sample, 2))[0];
     print STDERR "  Sample name: $sample\n";
+    $allsamples{$sample} = 1;  # <-- track all samples seen
 
     my $INPUT;
     if ($file =~ /\.gz$/) {
@@ -105,8 +107,8 @@ foreach my $file (@files) {
 print STDERR "\nTotal samples processed: $file_count\n";
 print STDERR "Writing output matrix...\n";
 
-# FIXED: Create sorted sample array for consistent column order
-my @sorted_samples = sort keys %sitehash;
+# FIXED: Create sorted sample array for consistent column order across all chromosomes
+my @sorted_samples = sort keys %allsamples;
 
 # Write header
 print $OUT "chrom";
@@ -124,7 +126,7 @@ foreach my $site (keys %totalhash) {
         @lvls = sort {$b <=> $a} @lvls;
         print $OUT "$site";
         foreach my $sample (@sorted_samples) {
-            if ($sitehash{$sample}{$site}) {
+            if (exists $sitehash{$sample}{$site}) {
                 print $OUT " $sitehash{$sample}{$site}";
             } else {
                 print $OUT " 0/0";
