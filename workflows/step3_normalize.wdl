@@ -3,8 +3,9 @@ version 1.0
 task normalize_transform {
     input {
         File input_matrix
+        File sample_list
         String output_file
-        Int window_size = 100000  # Default 100kb window
+        Int window_size = 100000
 
         Int memory
         Int disk_space
@@ -15,7 +16,8 @@ task normalize_transform {
         python /opt/scripts/transform.py \
             --input ~{input_matrix} \
             --output ~{output_file} \
-            --window ~{window_size}
+            --window ~{window_size} \
+            --sample_list ~{sample_list}
     >>>
 
     runtime {
@@ -62,8 +64,9 @@ task calculate_pcs {
 workflow normalize_workflow {
     input {
         File matrix_file
+        File sample_list
         String output_prefix
-        Int window_size = 100000  # Default 100kb window
+        Int window_size = 100000
 
         Int memory
         Int disk_space
@@ -73,6 +76,7 @@ workflow normalize_workflow {
     call normalize_transform {
         input:
             input_matrix = matrix_file,
+            sample_list = sample_list,
             output_file = "~{output_prefix}.bed.gz",
             window_size = window_size,
             memory = memory,
