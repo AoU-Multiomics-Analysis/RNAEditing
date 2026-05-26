@@ -156,11 +156,11 @@ def main(input_file, output_file, window_size):
     sys.stderr.write(f"Writing output to {output_file}...\n")
 
     with open_maybe_gzip(output_file, "wt") as out:
-        out.write("\t".join(["Chr", "start", "end", "ID"] + sample_names) + "\n")
+        out.write("\t".join(["chr", "start", "end", "phenotype_id"] + sample_names) + "\n")
 
         for chr_key, start_pos, coord, data in sites_for_sorting:
             parts = coord.replace("chr", "").split(":")
-            chromosome = parts[0]
+            chromosome = f"chr{parts[0]}"
             original_start = int(parts[1])
             original_end = int(parts[2])
 
