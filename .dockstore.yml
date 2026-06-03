@@ -7,6 +7,12 @@ workflows:
     primaryDescriptorPath: /workflows/step2_aggregate.wdl
     name: "RNAEditingSampleAggregation"
   - subclass: WDL 
+    primaryDescriptorPath: /workflows/step2_aggregate_task1.wdl
+    name: "RNAEditingSampleAggregation_task1"
+  - subclass: WDL 
+    primaryDescriptorPath: /workflows/step2_aggregate_task2.wdl
+    name: "RNAEditingSampleAggregation_task2"
+  - subclass: WDL 
     primaryDescriptorPath: /workflows/step3_normalize.wdl
     name: "RNAEditingNormalization"
 
