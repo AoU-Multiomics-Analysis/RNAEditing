@@ -69,7 +69,7 @@ workflow normalize_workflow {
         File sample_list
         String output_prefix
         Int window_size = 100000
-        Float mad_threshold // New MAD threshold input
+        Float mad_threshold 
 
         Int memory
         Int disk_space
