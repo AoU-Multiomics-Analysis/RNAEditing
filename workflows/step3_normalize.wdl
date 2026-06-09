@@ -6,6 +6,7 @@ task normalize_transform {
         File sample_list
         String output_file
         Int window_size = 100000
+        Float mad_threshold // New MAD threshold input
 
         Int memory
         Int disk_space
@@ -17,7 +18,8 @@ task normalize_transform {
             --input ~{input_matrix} \
             --output ~{output_file} \
             --window ~{window_size} \
-            --sample_list ~{sample_list}
+            --sample_list ~{sample_list} \
+            -m ~{mad_threshold} // Pass the MAD threshold to the script
     >>>
 
     runtime {
@@ -67,6 +69,7 @@ workflow normalize_workflow {
         File sample_list
         String output_prefix
         Int window_size = 100000
+        Float mad_threshold // New MAD threshold input
 
         Int memory
         Int disk_space
@@ -79,6 +82,7 @@ workflow normalize_workflow {
             sample_list = sample_list,
             output_file = "~{output_prefix}.bed.gz",
             window_size = window_size,
+            mad_threshold = mad_threshold, // Pass the MAD threshold to the task
             memory = memory,
             disk_space = disk_space,
             num_threads = num_threads
