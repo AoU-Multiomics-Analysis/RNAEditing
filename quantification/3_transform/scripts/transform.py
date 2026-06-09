@@ -36,10 +36,8 @@ def compute_mad(values):
     return mad
 
 
-def main(input_file, output_file, window_size, sample_list_file=None):
-
-    MAD_THRESHOLD = 0.003
-
+def main(input_file, output_file, window_size, mad_threshold, sample_list_file=None):
+    sys.stderr.write(f"MAD Threshold: {mad_threshold}\n")
     sys.stderr.write("Starting processing...\n")
     sys.stderr.write(f"Input file: {input_file}\n")
     sys.stderr.write(f"Output file: {output_file}\n")
@@ -165,7 +163,7 @@ def main(input_file, output_file, window_size, sample_list_file=None):
         # decide whether we keep this site for output matrix
         keep = True
 
-        if (not np.isfinite(mad)) or (mad < MAD_THRESHOLD):
+        if (not np.isfinite(mad)) or (mad < mad_threshold):
             keep = False
             filtered_low_mad += 1
 
@@ -198,7 +196,7 @@ def main(input_file, output_file, window_size, sample_list_file=None):
     sys.stderr.write("Filtering Summary:\n")
     sys.stderr.write(f"  Total sites input: {total_sites}\n")
     sys.stderr.write(
-        f"  Filtered (low MAD < {MAD_THRESHOLD}): "
+        f"  Filtered (low MAD < {mad_threshold}): "
         f"{filtered_low_mad}\n"
     )
     sys.stderr.write(f"  Sites retained: {len(sites_data)}\n")
@@ -339,7 +337,7 @@ def main(input_file, output_file, window_size, sample_list_file=None):
 if __name__ == "__main__":
 
     parser = OptionParser(
-        usage="usage: %prog -i INPUT_FILE -o OUTPUT_FILE -w WINDOW_SIZE"
+        usage="usage: %prog -i INPUT_FILE -o OUTPUT_FILE -w WINDOW_SIZE -m MAD_THRESHOLD"
     )
 
     parser.add_option(
@@ -368,6 +366,16 @@ if __name__ == "__main__":
         )
     )
 
+    # New option for MAD threshold
+    parser.add_option(
+        "-m",
+        "--mad_threshold",
+        dest="mad_threshold",
+        type="float",
+        default=0.003,
+        help="MAD threshold for filtering (default: 0.003)"
+    )
+
     parser.add_option(
         "--sample_list",
         dest="sample_list",
@@ -387,5 +395,6 @@ if __name__ == "__main__":
         options.input_file,
         options.output_file,
         options.window_size,
+        options.mad_threshold,  # Pass the MAD threshold here
         options.sample_list
     )
