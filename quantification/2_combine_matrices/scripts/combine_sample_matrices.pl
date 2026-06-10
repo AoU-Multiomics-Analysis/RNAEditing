@@ -4,6 +4,7 @@ use IO::Compress::Gzip qw($GzipError);
 use File::Path qw(make_path);
 use File::Basename qw(dirname basename);
 use Getopt::Long;
+use POSIX qw(ceil);
 
 my %sitehash;
 my %totalhash;
@@ -11,7 +12,7 @@ my %lvlhash;
 my %allsamples;  # to collect all sample names
 
 # Default values for min samples and min coverage
-my $minsamps = 900;
+my $minsamps = 0.9;
 my $mincov = 20;
 my $input_dir;
 my $output_file;
@@ -22,7 +23,7 @@ GetOptions(
     'input|i=s'      => \$input_dir,
     'output|o=s'     => \$output_file,
     'mincov|c=i'     => \$mincov,
-    'minsamps|s=i'   => \$minsamps,
+    'minsamps|s=f'   => \$minsamps,
     'help|h'         => \$help
 ) or die "Error in command line arguments\n";
 
@@ -34,11 +35,11 @@ if ($help || !$input_dir || !$output_file) {
     print "  -o, --output    Output file path\n\n";
     print "Optional arguments:\n";
     print "  -c, --mincov    Minimum coverage per site (default: 20)\n";
-    print "  -s, --minsamps  Minimum number of samples per site (default: 450)\n";
+    print "  -s, --minsamps  Minimum fraction of samples required per site (default: 0.9)\n";
     print "  -h, --help      Show this help message\n\n";
     print "Example:\n";
     print "  perl script.pl -i /path/to/input -o /path/to/output.txt\n";
-    print "  perl script.pl -i /path/to/input -o /path/to/output.txt -c 10 -s 100\n";
+    print "  perl script.pl -i /path/to/input -o /path/to/output.txt -c 10 -s 0.8\n";
     exit(0);
 }
 
@@ -53,7 +54,7 @@ print STDERR "Parameters:\n";
 print STDERR "  Input directory: $input_dir\n";
 print STDERR "  Output file: $output_file\n";
 print STDERR "  Minimum coverage: $mincov\n";
-print STDERR "  Minimum samples: $minsamps\n\n";
+print STDERR "  Minimum percent of samples required: $minsamps\n\n";
 
 if ($output_file !~ /\.gz$/) {
     $output_file .= ".gz";  # force gz output
@@ -65,6 +66,12 @@ my $OUT = IO::Compress::Gzip->new($output_file)
 my $file_count = 0;
 my @files = (glob("$input_dir/*.rnaediting_op.gz"), glob("$input_dir/*.rnaediting_op"));
 die "No input files found in $input_dir\n" unless @files;
+
+die "Error: --minsamps must be in (0,1], e.g. 0.9\n"
+  unless $minsamps > 0 && $minsamps <= 1;
+
+my $num_files = scalar(@files);
+my $minsamps_count = ceil($minsamps * $num_files);  # round up
 
 foreach my $file (@files) {
     $file_count++;
@@ -121,7 +128,7 @@ print $OUT "\n";
 my $sites_written = 0;
 my $sites_filtered = 0;
 foreach my $site (keys %totalhash) {
-    if ($totalhash{$site} >= $minsamps) {
+    if ($totalhash{$site} >= $minsamps_count) {
         my @lvls = split(/\,/, $lvlhash{$site});
         @lvls = sort {$b <=> $a} @lvls;
         print $OUT "$site";
@@ -143,5 +150,5 @@ close $OUT;
 
 print STDERR "\nDone!\n";
 print STDERR "Sites written: $sites_written\n";
-print STDERR "Sites filtered (< $minsamps samples): $sites_filtered\n";
+print STDERR "Sites filtered (< $minsamps_count samples): $sites_filtered\n";
 print STDERR "Output saved to: $output_file\n";
