@@ -36,12 +36,11 @@ def compute_mad(values):
     return mad
 
 
-def main(input_file, output_file, window_size, mad_threshold, sample_list_file=None):
+def main(input_file, output_file, mad_threshold, sample_list_file=None):
     sys.stderr.write(f"MAD Threshold: {mad_threshold}\n")
     sys.stderr.write("Starting processing...\n")
     sys.stderr.write(f"Input file: {input_file}\n")
-    sys.stderr.write(f"Output file: {output_file}\n")
-    sys.stderr.write(f"Window size: ±{window_size:,} bp\n\n")
+    sys.stderr.write(f"Output file: {output_file}\n\n")
 
     # -----------------------------
     # Load allowed samples
@@ -57,16 +56,12 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
             reader = csv.DictReader(sf, delimiter="\t")
 
             if "research_id" not in reader.fieldnames:
-                raise ValueError(
-                    "Sample list TSV must contain column: research_id"
-                )
+                raise ValueError("Sample list TSV must contain column: research_id")
 
             for row in reader:
                 allowed_samples.add(row["research_id"].strip())
 
-        sys.stderr.write(
-            f"Loaded {len(allowed_samples)} samples\n\n"
-        )
+        sys.stderr.write(f"Loaded {len(allowed_samples)} samples\n\n")
 
     output_file = ensure_gz(output_file)
 
@@ -84,11 +79,7 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
     # Filter sample columns
     # -----------------------------
     if allowed_samples is not None:
-        keep_indices = [
-            i for i, s in enumerate(all_sample_names)
-            if s in allowed_samples
-        ]
-
+        keep_indices = [i for i, s in enumerate(all_sample_names) if s in allowed_samples]
         sample_names = [all_sample_names[i] for i in keep_indices]
 
         sys.stderr.write(
@@ -102,7 +93,6 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
         sample_names = all_sample_names
 
     num_samples = len(sample_names)
-
     sys.stderr.write(f"Found {num_samples} samples\n")
 
     # retained sites for transformed BED output
@@ -125,7 +115,6 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
             sys.stderr.write(f"  Processed {total_sites} sites...\n")
 
         fields = line.strip().split()
-
         if not fields:
             continue
 
@@ -138,9 +127,8 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
         ratios = [all_ratios[i] for i in keep_indices]
 
         editing_levels = []
-
         for ratio_str in ratios:
-            num, denom = ratio_str.split('/')
+            num, denom = ratio_str.split("/")
             num, denom = float(num), float(denom)
 
             if denom < 1:
@@ -162,22 +150,18 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
 
         # decide whether we keep this site for output matrix
         keep = True
-
         if (not np.isfinite(mad)) or (mad < mad_threshold):
             keep = False
             filtered_low_mad += 1
 
         # record metadata for ALL sites (even filtered)
-        site_metadata.append(
-            (chrom_full, mean_edit, mad, n_missing, keep)
-        )
+        site_metadata.append((chrom_full, mean_edit, mad, n_missing, keep))
 
         if not keep:
             continue
 
         mask = ~np.isnan(editing_levels)
         obs = editing_levels[mask]
-
         if obs.size == 0:
             continue
 
@@ -196,13 +180,11 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
     sys.stderr.write("Filtering Summary:\n")
     sys.stderr.write(f"  Total sites input: {total_sites}\n")
     sys.stderr.write(
-        f"  Filtered (low MAD < {mad_threshold}): "
-        f"{filtered_low_mad}\n"
+        f"  Filtered (low MAD < {mad_threshold}): {filtered_low_mad}\n"
     )
     sys.stderr.write(f"  Sites retained: {len(sites_data)}\n")
     sys.stderr.write(
-        f"  Retention rate: "
-        f"{100 * len(sites_data) / total_sites:.1f}%\n\n"
+        f"  Retention rate: {100 * len(sites_data) / total_sites:.1f}%\n\n"
     )
 
     sys.stderr.write("Sorting sites by genomic position...\n")
@@ -211,190 +193,118 @@ def main(input_file, output_file, window_size, mad_threshold, sample_list_file=N
 
     for coord, data in zip(sites_coords, sites_data):
         parts = coord.replace("chr", "").split(":")
-
         chrom = parts[0]
         start_pos = int(parts[1])
 
         try:
             c = int(chrom)
-
             chr_key = (0, c) if 1 <= c <= 23 else (1, chrom)
-
         except ValueError:
             chr_key = (1, chrom)
 
-        sites_for_sorting.append(
-            (chr_key, start_pos, coord, data)
-        )
+        sites_for_sorting.append((chr_key, start_pos, coord, data))
 
     sites_for_sorting.sort(key=lambda x: (x[0], x[1]))
 
     sys.stderr.write(f"Writing output to {output_file}...\n")
 
     with open_maybe_gzip(output_file, "wt") as out:
-
-        out.write(
-            "\t".join(
-                ["chr", "start", "end", "phenotype_id"] + sample_names
-            ) + "\n"
-        )
+        out.write("\t".join(["chr", "start", "end", "phenotype_id"] + sample_names) + "\n")
 
         for chr_key, start_pos, coord, data in sites_for_sorting:
-
             parts = coord.replace("chr", "").split(":")
 
             chromosome = f"chr{parts[0]}"
             original_start = int(parts[1])
             original_end = int(parts[2])
 
-            # Calculate windowed coordinates
-            windowed_start = max(0, original_start - window_size)
-            windowed_end = original_start + window_size
-
             # Build ID from original coordinates
             if len(parts) == 4:
                 gene_id = parts[3]
-                site_id = (
-                    f"{chromosome}:{original_start}:"
-                    f"{original_end}_{gene_id}"
-                )
+                site_id = f"{chromosome}:{original_start}:{original_end}_{gene_id}"
             else:
-                site_id = (
-                    f"{chromosome}:{original_start}:{original_end}"
-                )
+                site_id = f"{chromosome}:{original_start}:{original_end}"
 
-            data_strings = [
-                "NA" if np.isnan(val) else f"{val:.6f}"
-                for val in data
-            ]
+            data_strings = ["NA" if np.isnan(val) else f"{val:.6f}" for val in data]
 
             out.write(
                 "\t".join(
-                    [
-                        chromosome,
-                        str(windowed_start),
-                        str(windowed_end),
-                        site_id
-                    ] + data_strings
-                ) + "\n"
+                    [chromosome, str(original_start), str(original_end), site_id]
+                    + data_strings
+                )
+                + "\n"
             )
 
-    sys.stderr.write(
-        "Writing site metadata to site_metadata.csv...\n"
-    )
+    sys.stderr.write("Writing site metadata to site_metadata.csv...\n")
 
     with open("site_metadata.csv", "w", newline="") as csvfile:
-
         w = csv.writer(csvfile)
+        w.writerow(["site", "mean_editing", "mad", "n_missing", "kept"])
 
-        w.writerow(
-            ["site", "mean_editing", "mad", "n_missing", "kept"]
-        )
-
-        for (
-            site,
-            mean_edit,
-            mad_val,
-            n_missing,
-            kept
-        ) in site_metadata:
-
+        for site, mean_edit, mad_val, n_missing, kept in site_metadata:
             mean_out = (
                 "NA"
-                if (
-                    mean_edit is None
-                    or not np.isfinite(mean_edit)
-                )
+                if (mean_edit is None or not np.isfinite(mean_edit))
                 else mean_edit
             )
-
             mad_out = (
                 "NA"
-                if (
-                    mad_val is None
-                    or not np.isfinite(mad_val)
-                )
+                if (mad_val is None or not np.isfinite(mad_val))
                 else mad_val
             )
 
-            w.writerow(
-                [
-                    site,
-                    mean_out,
-                    mad_out,
-                    n_missing,
-                    int(kept)
-                ]
-            )
+            w.writerow([site, mean_out, mad_out, n_missing, int(kept)])
 
     sys.stderr.write("\nDone!\n")
     sys.stderr.write(f"Output saved to: {output_file}\n")
-    sys.stderr.write(
-        "Metadata saved to: site_metadata.csv\n"
-    )
+    sys.stderr.write("Metadata saved to: site_metadata.csv\n")
 
 
 if __name__ == "__main__":
-
     parser = OptionParser(
-        usage="usage: %prog -i INPUT_FILE -o OUTPUT_FILE -w WINDOW_SIZE -m MAD_THRESHOLD"
+        usage="usage: %prog -i INPUT_FILE -o OUTPUT_FILE -m MAD_THRESHOLD"
     )
 
     parser.add_option(
         "-i",
         "--input",
         dest="input_file",
-        help="Input file with editing ratios"
+        help="Input file with editing ratios",
     )
 
     parser.add_option(
         "-o",
         "--output",
         dest="output_file",
-        help="Output BED file (will be gzipped if .gz extension)"
+        help="Output BED file (will be gzipped if .gz extension)",
     )
 
-    parser.add_option(
-        "-w",
-        "--window",
-        dest="window_size",
-        type="int",
-        default=100000,
-        help=(
-            "Window size in bp to extend in each direction "
-            "from editing site (default: 100000)"
-        )
-    )
-
-    # New option for MAD threshold
+    # MAD threshold option
     parser.add_option(
         "-m",
         "--mad_threshold",
         dest="mad_threshold",
         type="float",
         default=0.003,
-        help="MAD threshold for filtering (default: 0.003)"
+        help="MAD threshold for filtering (default: 0.003)",
     )
 
     parser.add_option(
         "--sample_list",
         dest="sample_list",
-        help="TSV file containing research_id column"
+        help="TSV file containing research_id column",
     )
 
     (options, args) = parser.parse_args()
 
     if not options.input_file or not options.output_file:
-        sys.stderr.write(
-            "Error: must provide input and output files\n"
-        )
+        sys.stderr.write("Error: must provide input and output files\n")
         parser.print_help()
         sys.exit(1)
 
     main(
         options.input_file,
         options.output_file,
-        options.window_size,
-        options.mad_threshold,  # Pass the MAD threshold here
-        options.sample_list
+        options.mad_threshold,
+        options.sample_list,
     )
