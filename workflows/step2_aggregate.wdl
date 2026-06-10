@@ -4,10 +4,7 @@ task aggregate_samples {
     input {
         File EditingCountsFOFN 
         String output_file
-        
-        Int min_coverage = 20
-        Int min_samples = 900
-        
+                
         Int memory
         Int disk_space
         Int num_threads
@@ -34,9 +31,7 @@ task aggregate_samples {
     # Aggregate
     perl /opt/scripts/combine_sample_matrices.pl \
         --input localized \
-        --output ~{output_file}.gz \
-        --mincov ~{min_coverage} \
-        --minsamps ~{min_samples}
+        --output ~{output_file}.gz 
     >>>
         
     runtime {
@@ -97,8 +92,6 @@ workflow aggregate_workflow {
 
         String output_prefix
         
-        Int min_coverage = 20
-        Int min_samples = 450
         
         Int memory
         Int disk_space
@@ -111,8 +104,6 @@ workflow aggregate_workflow {
             input:
                 EditingCountsFOFN = chr_fofns[i],
                 output_file = output_prefix + "." + chr_names[i],
-                min_coverage = min_coverage,
-                min_samples = min_samples,
                 memory = memory,
                 disk_space = disk_space,
                 num_threads = num_threads
