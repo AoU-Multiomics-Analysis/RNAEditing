@@ -331,3 +331,11 @@ where:
 
 - `ID` is the sample identifier.
 - `PC1`, `PC2`, etc. are phenotype principal components that can be used as covariates in downstream QTL analyses.
+
+## Acknowledgments
+
+This repository was built upon code developed in:
+
+* Li, Q., Gloudemans, M.J., Geisinger, J.M. et al. RNA editing underlies genetic risk of common inflammatory diseases. Nature 608, 569–577 (2022). https://doi.org/10.1038/s41586-022-05052-x
+
+* Original repository: https://github.com/vargasliqin/GTEx_edQTL
