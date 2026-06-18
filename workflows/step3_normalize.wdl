@@ -5,7 +5,6 @@ task normalize_transform {
         File input_matrix
         File sample_list
         String output_file
-        Int window_size = 100000
         Float mad_threshold 
 
         Int memory
@@ -17,7 +16,6 @@ task normalize_transform {
         python /opt/scripts/transform.py \
             --input ~{input_matrix} \
             --output ~{output_file} \
-            --window ~{window_size} \
             --sample_list ~{sample_list} \
             -m ~{mad_threshold} 
     >>>
@@ -68,7 +66,6 @@ workflow normalize_workflow {
         File matrix_file
         File sample_list
         String output_prefix
-        Int window_size = 100000
         Float mad_threshold 
 
         Int memory
@@ -81,7 +78,6 @@ workflow normalize_workflow {
             input_matrix = matrix_file,
             sample_list = sample_list,
             output_file = "~{output_prefix}.bed.gz",
-            window_size = window_size,
             mad_threshold = mad_threshold, 
             memory = memory,
             disk_space = disk_space,
